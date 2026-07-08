@@ -1,0 +1,29 @@
+{
+    "name": "fr-apiaas/laravel-sdk",
+    "description": "Official Laravel SDK for FR-APIaaS — Face Recognition as a Service",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "fr-apiaas"],
+    "require": {
+        "php": ">=8.1",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "guzzlehttp/guzzle": "^7.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "FrApiaas\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "FrApiaas\\FrApiaasServiceProvider"
+            ],
+            "aliases": {
+                "FrApiaas": "FrApiaas\\Facades\\FrApiaas"
+            }
+        }
+    },
+    "minimum-stability": "stable"
+}
