@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-white.svg">
+    <img src="docs/brand/logo.svg" alt="Idemity" width="220">
+  </picture>
+</p>
+
 # Idemity Laravel SDK
 
 Official Laravel SDK for [Idemity](https://idemity.com) — Face Recognition as a Service.
