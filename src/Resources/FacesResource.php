@@ -1,16 +1,16 @@
 <?php
 
-namespace FrApiaas\Resources;
+namespace Serupa\Resources;
 
-use FrApiaas\DTO\AttributesResult;
-use FrApiaas\DTO\BatchJob;
-use FrApiaas\DTO\BatchResponse;
-use FrApiaas\DTO\Face;
-use FrApiaas\DTO\IdentifyResult;
-use FrApiaas\DTO\LivenessResult;
-use FrApiaas\DTO\VerifyResult;
-use FrApiaas\Exceptions\FrApiException;
-use FrApiaas\FrClient;
+use Serupa\DTO\AttributesResult;
+use Serupa\DTO\BatchJob;
+use Serupa\DTO\BatchResponse;
+use Serupa\DTO\Face;
+use Serupa\DTO\IdentifyResult;
+use Serupa\DTO\LivenessResult;
+use Serupa\DTO\VerifyResult;
+use Serupa\Exceptions\SerupaApiException;
+use Serupa\SerupaClient;
 
 /**
  * Face enrollment and recognition operations, scoped to a collection.
@@ -20,7 +20,7 @@ use FrApiaas\FrClient;
  */
 class FacesResource
 {
-    public function __construct(private readonly FrClient $client)
+    public function __construct(private readonly SerupaClient $client)
     {
     }
 
@@ -232,7 +232,7 @@ class FacesResource
     {
         foreach (array_values($items) as $i => $item) {
             if (! isset($item['external_id'], $item['image'])) {
-                throw new FrApiException('INVALID_INPUT', "batch item {$i} needs external_id and image", 0);
+                throw new SerupaApiException('INVALID_INPUT', "batch item {$i} needs external_id and image", 0);
             }
             $req = $req->attach(
                 "images[{$i}]",

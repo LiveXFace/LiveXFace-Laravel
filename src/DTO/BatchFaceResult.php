@@ -1,6 +1,6 @@
 <?php
 
-namespace FrApiaas\DTO;
+namespace Serupa\DTO;
 
 final class BatchFaceResult
 {

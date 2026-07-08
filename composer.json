@@ -1,9 +1,9 @@
 {
-    "name": "fr-apiaas/laravel-sdk",
-    "description": "Official Laravel SDK for FR-APIaaS — Face Recognition as a Service",
+    "name": "serupa/laravel-sdk",
+    "description": "Official Laravel SDK for Serupa — Face Recognition as a Service",
     "type": "library",
     "license": "MIT",
-    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "fr-apiaas"],
+    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "serupa"],
     "require": {
         "php": ">=8.1",
         "illuminate/support": "^10.0|^11.0|^12.0",
@@ -12,16 +12,16 @@
     },
     "autoload": {
         "psr-4": {
-            "FrApiaas\\": "src/"
+            "Serupa\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "FrApiaas\\FrApiaasServiceProvider"
+                "Serupa\\SerupaServiceProvider"
             ],
             "aliases": {
-                "FrApiaas": "FrApiaas\\Facades\\FrApiaas"
+                "Serupa": "Serupa\\Facades\\Serupa"
             }
         }
     },

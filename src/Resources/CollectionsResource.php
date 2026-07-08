@@ -1,14 +1,14 @@
 <?php
 
-namespace FrApiaas\Resources;
+namespace Serupa\Resources;
 
-use FrApiaas\DTO\FaceCollection;
-use FrApiaas\FrClient;
+use Serupa\DTO\FaceCollection;
+use Serupa\SerupaClient;
 
 /** Face collection management. */
 class CollectionsResource
 {
-    public function __construct(private readonly FrClient $client)
+    public function __construct(private readonly SerupaClient $client)
     {
     }
 

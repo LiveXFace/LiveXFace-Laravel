@@ -1,15 +1,15 @@
 <?php
 
-namespace FrApiaas\Exceptions;
+namespace Serupa\Exceptions;
 
 use RuntimeException;
 
 /**
- * Raised for any non-2xx FR-APIaaS response. Carries the API error code
+ * Raised for any non-2xx Serupa response. Carries the API error code
  * (e.g. NO_FACE_DETECTED, SEAT_LIMIT_REACHED, RATE_LIMIT_EXCEEDED), the HTTP
  * status, and the request id for support correlation.
  */
-class FrApiException extends RuntimeException
+class SerupaApiException extends RuntimeException
 {
     public function __construct(
         public readonly string $errorCode,

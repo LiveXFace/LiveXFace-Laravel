@@ -1,34 +1,34 @@
 <?php
 
-namespace FrApiaas;
+namespace Serupa;
 
-use FrApiaas\Exceptions\FrApiException;
-use FrApiaas\Exceptions\FrNetworkException;
-use FrApiaas\Resources\CollectionsResource;
-use FrApiaas\Resources\FacesResource;
+use Serupa\Exceptions\SerupaApiException;
+use Serupa\Exceptions\SerupaNetworkException;
+use Serupa\Resources\CollectionsResource;
+use Serupa\Resources\FacesResource;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 
 /**
- * FR-APIaaS client.
+ * Serupa client.
  *
- * In Laravel, resolve it from the container (bound by FrApiaasServiceProvider)
- * or use the FrApiaas facade:
+ * In Laravel, resolve it from the container (bound by SerupaServiceProvider)
+ * or use the Serupa facade:
  *
- *     $result = FrApiaas::faces()->identify($collectionId, $imageBytes, topK: 3);
+ *     $result = Serupa::faces()->identify($collectionId, $imageBytes, topK: 3);
  *
  * Built on Laravel's HTTP client, so `Http::fake()` works in your tests.
  */
-class FrClient
+class SerupaClient
 {
     public readonly CollectionsResource $collections;
     public readonly FacesResource $faces;
 
     public function __construct(
         private readonly string $apiKey,
-        private readonly string $baseUrl = 'https://api.fr-apiaas.io/api/v1',
+        private readonly string $baseUrl = 'https://api.serupa.ai/api/v1',
         private readonly int $timeout = 30,
         private ?HttpFactory $http = null,
     ) {
@@ -58,7 +58,7 @@ class FrClient
     }
 
     /**
-     * Unwrap the standard FR-APIaaS envelope {success, data, error, request_id}.
+     * Unwrap the standard Serupa envelope {success, data, error, request_id}.
      *
      * @internal
      * @return array<string, mixed>
@@ -67,7 +67,7 @@ class FrClient
     {
         $body = $response->json();
         if (! is_array($body)) {
-            throw new FrApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
+            throw new SerupaApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
         }
 
         if ($response->successful() && ($body['success'] ?? false)) {
@@ -78,7 +78,7 @@ class FrClient
 
         $error = $body['error'] ?? [];
 
-        throw new FrApiException(
+        throw new SerupaApiException(
             $error['code'] ?? 'UNKNOWN_ERROR',
             $error['message'] ?? 'An unknown error occurred',
             $response->status(),
@@ -98,7 +98,7 @@ class FrClient
         try {
             return $this->unwrap($send($this->request()));
         } catch (ConnectionException $e) {
-            throw new FrNetworkException('FR-APIaaS request failed: '.$e->getMessage(), $e);
+            throw new SerupaNetworkException('Serupa request failed: '.$e->getMessage(), $e);
         }
     }
 }

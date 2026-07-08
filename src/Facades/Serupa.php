@@ -1,21 +1,21 @@
 <?php
 
-namespace FrApiaas\Facades;
+namespace Serupa\Facades;
 
-use FrApiaas\Resources\CollectionsResource;
-use FrApiaas\Resources\FacesResource;
+use Serupa\Resources\CollectionsResource;
+use Serupa\Resources\FacesResource;
 use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static FacesResource faces()
  * @method static CollectionsResource collections()
  *
- * @see \FrApiaas\FrClient
+ * @see \Serupa\SerupaClient
  */
-class FrApiaas extends Facade
+class Serupa extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return 'fr-apiaas';
+        return 'serupa';
     }
 }

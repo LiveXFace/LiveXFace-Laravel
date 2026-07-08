@@ -1,6 +1,6 @@
 <?php
 
-namespace FrApiaas\DTO;
+namespace Serupa\DTO;
 
 /** Attributes of one detected face. Optional analyses may be null. */
 final class FaceAttributes
