@@ -1,6 +1,6 @@
 <?php
 
-namespace Serupa\DTO;
+namespace Idemity\DTO;
 
 /** An asynchronous batch registration job. Status: queued|processing|done|failed. */
 final class BatchJob

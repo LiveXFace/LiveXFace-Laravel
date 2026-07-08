@@ -1,14 +1,14 @@
 <?php
 
-namespace Serupa\Resources;
+namespace Idemity\Resources;
 
-use Serupa\DTO\FaceCollection;
-use Serupa\SerupaClient;
+use Idemity\DTO\FaceCollection;
+use Idemity\IdemityClient;
 
 /** Face collection management. */
 class CollectionsResource
 {
-    public function __construct(private readonly SerupaClient $client)
+    public function __construct(private readonly IdemityClient $client)
     {
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Serupa\DTO;
+namespace Idemity\DTO;
 
 /** Attributes of one detected face. Optional analyses may be null. */
 final class FaceAttributes

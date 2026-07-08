@@ -1,6 +1,6 @@
 <?php
 
-namespace Serupa\DTO;
+namespace Idemity\DTO;
 
 final class IdentifyMatch
 {

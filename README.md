@@ -1,36 +1,36 @@
-# Serupa Laravel SDK
+# Idemity Laravel SDK
 
-Official Laravel SDK for [Serupa](https://serupa.ai) — Face Recognition as a Service.
+Official Laravel SDK for [Idemity](https://idemity.com) — Face Recognition as a Service.
 
 Built on Laravel's HTTP client, so `Http::fake()` works out of the box in your tests.
 
 ## Installation
 
 ```bash
-composer require serupa/laravel-sdk
+composer require idemity/laravel-sdk
 ```
 
 Add your credentials to `.env`:
 
 ```dotenv
-SERUPA_KEY=srp_xxxxxxxxxxxx
+IDEMITY_KEY=idm_xxxxxxxxxxxx
 # Optional — defaults to the hosted cloud; point at your on-prem instance if self-hosting:
-# SERUPA_URL=https://faces.internal.example.com/api/v1
+# IDEMITY_URL=https://faces.internal.example.com/api/v1
 ```
 
 Optionally publish the config:
 
 ```bash
-php artisan vendor:publish --tag=serupa-config
+php artisan vendor:publish --tag=idemity-config
 ```
 
 ## Usage
 
 ```php
-use Serupa\Facades\Serupa;
+use Idemity\Facades\Idemity;
 
 // Enroll a face
-$face = Serupa::faces()->register(
+$face = Idemity::faces()->register(
     $collectionId,
     file_get_contents($request->file('photo')->path()),
     externalId: 'user_'.$user->id,
@@ -38,47 +38,47 @@ $face = Serupa::faces()->register(
 );
 
 // 1:N identify
-$result = Serupa::faces()->identify($collectionId, $imageBytes, topK: 3);
+$result = Idemity::faces()->identify($collectionId, $imageBytes, topK: 3);
 if ($best = $result->best()) {
     // $best->externalId, $best->confidence
 }
 
 // 1:1 verify against a stored face
-$verdict = Serupa::faces()->verify($collectionId, $imageBytes, faceId: $face->id);
+$verdict = Idemity::faces()->verify($collectionId, $imageBytes, faceId: $face->id);
 
 // Liveness (anti-spoofing)
-$live = Serupa::faces()->liveness($collectionId, $imageBytes);
+$live = Idemity::faces()->liveness($collectionId, $imageBytes);
 
 // Face attributes (age, gender, emotion, glasses, mask, head pose)
-$attrs = Serupa::faces()->attributes($collectionId, $imageBytes);
+$attrs = Idemity::faces()->attributes($collectionId, $imageBytes);
 
 // Async batch registration (up to 100 images)
-$job = Serupa::faces()->batchRegisterAsync($collectionId, [
+$job = Idemity::faces()->batchRegisterAsync($collectionId, [
     ['external_id' => 'u1', 'image' => $bytes1],
     ['external_id' => 'u2', 'image' => $bytes2, 'metadata' => ['team' => 'sales']],
 ]);
 while (! $job->isFinished()) {
     sleep(1);
-    $job = Serupa::faces()->getBatchJob($collectionId, $job->id);
+    $job = Idemity::faces()->getBatchJob($collectionId, $job->id);
 }
 ```
 
-Dependency injection works too — type-hint `Serupa\SerupaClient` anywhere.
+Dependency injection works too — type-hint `Idemity\IdemityClient` anywhere.
 
 ## Error handling
 
-All API errors raise `Serupa\Exceptions\SerupaApiException` carrying the API
+All API errors raise `Idemity\Exceptions\IdemityApiException` carrying the API
 error code, HTTP status, and request id:
 
 ```php
 try {
-    Serupa::faces()->identify($collectionId, $bytes);
-} catch (\Serupa\Exceptions\SerupaApiException $e) {
+    Idemity::faces()->identify($collectionId, $bytes);
+} catch (\Idemity\Exceptions\IdemityApiException $e) {
     if ($e->isNoFaceDetected()) { /* ask the user for a clearer photo */ }
 }
 ```
 
-Transport failures (DNS, timeouts) raise `Serupa\Exceptions\SerupaNetworkException`.
+Transport failures (DNS, timeouts) raise `Idemity\Exceptions\IdemityNetworkException`.
 
 ## Requirements
 

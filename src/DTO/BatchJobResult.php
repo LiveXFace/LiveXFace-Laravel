@@ -1,6 +1,6 @@
 <?php
 
-namespace Serupa\DTO;
+namespace Idemity\DTO;
 
 /** Outcome for one image of an async batch job. */
 final class BatchJobResult

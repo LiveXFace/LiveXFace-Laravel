@@ -1,21 +1,21 @@
 <?php
 
-namespace Serupa\Facades;
+namespace Idemity\Facades;
 
-use Serupa\Resources\CollectionsResource;
-use Serupa\Resources\FacesResource;
+use Idemity\Resources\CollectionsResource;
+use Idemity\Resources\FacesResource;
 use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static FacesResource faces()
  * @method static CollectionsResource collections()
  *
- * @see \Serupa\SerupaClient
+ * @see \Idemity\IdemityClient
  */
-class Serupa extends Facade
+class Idemity extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return 'serupa';
+        return 'idemity';
     }
 }

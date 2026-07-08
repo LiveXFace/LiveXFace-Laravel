@@ -1,34 +1,34 @@
 <?php
 
-namespace Serupa;
+namespace Idemity;
 
-use Serupa\Exceptions\SerupaApiException;
-use Serupa\Exceptions\SerupaNetworkException;
-use Serupa\Resources\CollectionsResource;
-use Serupa\Resources\FacesResource;
+use Idemity\Exceptions\IdemityApiException;
+use Idemity\Exceptions\IdemityNetworkException;
+use Idemity\Resources\CollectionsResource;
+use Idemity\Resources\FacesResource;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 
 /**
- * Serupa client.
+ * Idemity client.
  *
- * In Laravel, resolve it from the container (bound by SerupaServiceProvider)
- * or use the Serupa facade:
+ * In Laravel, resolve it from the container (bound by IdemityServiceProvider)
+ * or use the Idemity facade:
  *
- *     $result = Serupa::faces()->identify($collectionId, $imageBytes, topK: 3);
+ *     $result = Idemity::faces()->identify($collectionId, $imageBytes, topK: 3);
  *
  * Built on Laravel's HTTP client, so `Http::fake()` works in your tests.
  */
-class SerupaClient
+class IdemityClient
 {
     public readonly CollectionsResource $collections;
     public readonly FacesResource $faces;
 
     public function __construct(
         private readonly string $apiKey,
-        private readonly string $baseUrl = 'https://api.serupa.ai/api/v1',
+        private readonly string $baseUrl = 'https://api.idemity.com/api/v1',
         private readonly int $timeout = 30,
         private ?HttpFactory $http = null,
     ) {
@@ -58,7 +58,7 @@ class SerupaClient
     }
 
     /**
-     * Unwrap the standard Serupa envelope {success, data, error, request_id}.
+     * Unwrap the standard Idemity envelope {success, data, error, request_id}.
      *
      * @internal
      * @return array<string, mixed>
@@ -67,7 +67,7 @@ class SerupaClient
     {
         $body = $response->json();
         if (! is_array($body)) {
-            throw new SerupaApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
+            throw new IdemityApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
         }
 
         if ($response->successful() && ($body['success'] ?? false)) {
@@ -78,7 +78,7 @@ class SerupaClient
 
         $error = $body['error'] ?? [];
 
-        throw new SerupaApiException(
+        throw new IdemityApiException(
             $error['code'] ?? 'UNKNOWN_ERROR',
             $error['message'] ?? 'An unknown error occurred',
             $response->status(),
@@ -98,7 +98,7 @@ class SerupaClient
         try {
             return $this->unwrap($send($this->request()));
         } catch (ConnectionException $e) {
-            throw new SerupaNetworkException('Serupa request failed: '.$e->getMessage(), $e);
+            throw new IdemityNetworkException('Idemity request failed: '.$e->getMessage(), $e);
         }
     }
 }

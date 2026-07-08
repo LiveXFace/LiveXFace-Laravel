@@ -1,12 +1,12 @@
 <?php
 
-namespace Serupa\Exceptions;
+namespace Idemity\Exceptions;
 
 use RuntimeException;
 use Throwable;
 
 /** Raised when the request never produced an API response (DNS, timeout, TLS). */
-class SerupaNetworkException extends RuntimeException
+class IdemityNetworkException extends RuntimeException
 {
     public function __construct(string $message, ?Throwable $previous = null)
     {

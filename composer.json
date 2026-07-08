@@ -1,9 +1,9 @@
 {
-    "name": "serupa/laravel-sdk",
-    "description": "Official Laravel SDK for Serupa — Face Recognition as a Service",
+    "name": "idemity/laravel-sdk",
+    "description": "Official Laravel SDK for Idemity — Face Recognition as a Service",
     "type": "library",
     "license": "MIT",
-    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "serupa"],
+    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "idemity"],
     "require": {
         "php": ">=8.1",
         "illuminate/support": "^10.0|^11.0|^12.0",
@@ -12,16 +12,16 @@
     },
     "autoload": {
         "psr-4": {
-            "Serupa\\": "src/"
+            "Idemity\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Serupa\\SerupaServiceProvider"
+                "Idemity\\IdemityServiceProvider"
             ],
             "aliases": {
-                "Serupa": "Serupa\\Facades\\Serupa"
+                "Idemity": "Idemity\\Facades\\Idemity"
             }
         }
     },

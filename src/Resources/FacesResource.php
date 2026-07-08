@@ -1,16 +1,16 @@
 <?php
 
-namespace Serupa\Resources;
+namespace Idemity\Resources;
 
-use Serupa\DTO\AttributesResult;
-use Serupa\DTO\BatchJob;
-use Serupa\DTO\BatchResponse;
-use Serupa\DTO\Face;
-use Serupa\DTO\IdentifyResult;
-use Serupa\DTO\LivenessResult;
-use Serupa\DTO\VerifyResult;
-use Serupa\Exceptions\SerupaApiException;
-use Serupa\SerupaClient;
+use Idemity\DTO\AttributesResult;
+use Idemity\DTO\BatchJob;
+use Idemity\DTO\BatchResponse;
+use Idemity\DTO\Face;
+use Idemity\DTO\IdentifyResult;
+use Idemity\DTO\LivenessResult;
+use Idemity\DTO\VerifyResult;
+use Idemity\Exceptions\IdemityApiException;
+use Idemity\IdemityClient;
 
 /**
  * Face enrollment and recognition operations, scoped to a collection.
@@ -20,7 +20,7 @@ use Serupa\SerupaClient;
  */
 class FacesResource
 {
-    public function __construct(private readonly SerupaClient $client)
+    public function __construct(private readonly IdemityClient $client)
     {
     }
 
@@ -232,7 +232,7 @@ class FacesResource
     {
         foreach (array_values($items) as $i => $item) {
             if (! isset($item['external_id'], $item['image'])) {
-                throw new SerupaApiException('INVALID_INPUT', "batch item {$i} needs external_id and image", 0);
+                throw new IdemityApiException('INVALID_INPUT', "batch item {$i} needs external_id and image", 0);
             }
             $req = $req->attach(
                 "images[{$i}]",
