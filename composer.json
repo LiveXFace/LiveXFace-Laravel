@@ -4,6 +4,11 @@
     "type": "library",
     "license": "MIT",
     "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "idemity"],
+    "homepage": "https://idemity.com",
+    "support": {
+        "issues": "https://github.com/idemity/idemity-laravel/issues",
+        "source": "https://github.com/idemity/idemity-laravel"
+    },
     "require": {
         "php": ">=8.1",
         "illuminate/support": "^10.0|^11.0|^12.0",
