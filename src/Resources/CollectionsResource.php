@@ -1,14 +1,14 @@
 <?php
 
-namespace Idemity\Resources;
+namespace LiveXFace\Resources;
 
-use Idemity\DTO\FaceCollection;
-use Idemity\IdemityClient;
+use LiveXFace\DTO\FaceCollection;
+use LiveXFace\LiveXFaceClient;
 
 /** Face collection management. */
 class CollectionsResource
 {
-    public function __construct(private readonly IdemityClient $client)
+    public function __construct(private readonly LiveXFaceClient $client)
     {
     }
 

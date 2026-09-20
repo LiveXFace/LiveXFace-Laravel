@@ -1,6 +1,6 @@
 <?php
 
-namespace Idemity\DTO;
+namespace LiveXFace\DTO;
 
 /** Attributes of one detected face. Optional analyses may be null. */
 final class FaceAttributes

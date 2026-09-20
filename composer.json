@@ -1,13 +1,13 @@
 {
-    "name": "idemity/laravel-sdk",
-    "description": "Official Laravel SDK for Idemity — Face Recognition as a Service",
+    "name": "livexface/laravel-sdk",
+    "description": "Official Laravel SDK for LiveXFace — Face Recognition as a Service",
     "type": "library",
     "license": "MIT",
-    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "idemity"],
-    "homepage": "https://idemity.com",
+    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "livexface"],
+    "homepage": "https://livexface.com",
     "support": {
-        "issues": "https://github.com/idemity/idemity-laravel/issues",
-        "source": "https://github.com/idemity/idemity-laravel"
+        "issues": "https://github.com/livexface/livexface-laravel/issues",
+        "source": "https://github.com/livexface/livexface-laravel"
     },
     "require": {
         "php": ">=8.1",
@@ -17,16 +17,16 @@
     },
     "autoload": {
         "psr-4": {
-            "Idemity\\": "src/"
+            "LiveXFace\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Idemity\\IdemityServiceProvider"
+                "LiveXFace\\LiveXFaceServiceProvider"
             ],
             "aliases": {
-                "Idemity": "Idemity\\Facades\\Idemity"
+                "LiveXFace": "LiveXFace\\Facades\\LiveXFace"
             }
         }
     },

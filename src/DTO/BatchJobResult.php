@@ -1,6 +1,6 @@
 <?php
 
-namespace Idemity\DTO;
+namespace LiveXFace\DTO;
 
 /** Outcome for one image of an async batch job. */
 final class BatchJobResult

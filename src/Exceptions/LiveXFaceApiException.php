@@ -1,15 +1,15 @@
 <?php
 
-namespace Idemity\Exceptions;
+namespace LiveXFace\Exceptions;
 
 use RuntimeException;
 
 /**
- * Raised for any non-2xx Idemity response. Carries the API error code
+ * Raised for any non-2xx LiveXFace response. Carries the API error code
  * (e.g. NO_FACE_DETECTED, SEAT_LIMIT_REACHED, RATE_LIMIT_EXCEEDED), the HTTP
  * status, and the request id for support correlation.
  */
-class IdemityApiException extends RuntimeException
+class LiveXFaceApiException extends RuntimeException
 {
     public function __construct(
         public readonly string $errorCode,

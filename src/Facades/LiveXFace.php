@@ -1,21 +1,21 @@
 <?php
 
-namespace Idemity\Facades;
+namespace LiveXFace\Facades;
 
-use Idemity\Resources\CollectionsResource;
-use Idemity\Resources\FacesResource;
+use LiveXFace\Resources\CollectionsResource;
+use LiveXFace\Resources\FacesResource;
 use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static FacesResource faces()
  * @method static CollectionsResource collections()
  *
- * @see \Idemity\IdemityClient
+ * @see \LiveXFace\LiveXFaceClient
  */
-class Idemity extends Facade
+class LiveXFace extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return 'idemity';
+        return 'livexface';
     }
 }

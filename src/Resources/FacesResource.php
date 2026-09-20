@@ -1,16 +1,16 @@
 <?php
 
-namespace Idemity\Resources;
+namespace LiveXFace\Resources;
 
-use Idemity\DTO\AttributesResult;
-use Idemity\DTO\BatchJob;
-use Idemity\DTO\BatchResponse;
-use Idemity\DTO\Face;
-use Idemity\DTO\IdentifyResult;
-use Idemity\DTO\LivenessResult;
-use Idemity\DTO\VerifyResult;
-use Idemity\Exceptions\IdemityApiException;
-use Idemity\IdemityClient;
+use LiveXFace\DTO\AttributesResult;
+use LiveXFace\DTO\BatchJob;
+use LiveXFace\DTO\BatchResponse;
+use LiveXFace\DTO\Face;
+use LiveXFace\DTO\IdentifyResult;
+use LiveXFace\DTO\LivenessResult;
+use LiveXFace\DTO\VerifyResult;
+use LiveXFace\Exceptions\LiveXFaceApiException;
+use LiveXFace\LiveXFaceClient;
 
 /**
  * Face enrollment and recognition operations, scoped to a collection.
@@ -20,7 +20,7 @@ use Idemity\IdemityClient;
  */
 class FacesResource
 {
-    public function __construct(private readonly IdemityClient $client)
+    public function __construct(private readonly LiveXFaceClient $client)
     {
     }
 
@@ -232,7 +232,7 @@ class FacesResource
     {
         foreach (array_values($items) as $i => $item) {
             if (! isset($item['external_id'], $item['image'])) {
-                throw new IdemityApiException('INVALID_INPUT', "batch item {$i} needs external_id and image", 0);
+                throw new LiveXFaceApiException('INVALID_INPUT', "batch item {$i} needs external_id and image", 0);
             }
             $req = $req->attach(
                 "images[{$i}]",

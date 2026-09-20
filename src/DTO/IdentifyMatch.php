@@ -1,6 +1,6 @@
 <?php
 
-namespace Idemity\DTO;
+namespace LiveXFace\DTO;
 
 final class IdentifyMatch
 {

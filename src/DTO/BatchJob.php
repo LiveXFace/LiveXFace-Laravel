@@ -1,6 +1,6 @@
 <?php
 
-namespace Idemity\DTO;
+namespace LiveXFace\DTO;
 
 /** An asynchronous batch registration job. Status: queued|processing|done|failed. */
 final class BatchJob

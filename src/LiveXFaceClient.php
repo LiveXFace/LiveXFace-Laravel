@@ -1,34 +1,34 @@
 <?php
 
-namespace Idemity;
+namespace LiveXFace;
 
-use Idemity\Exceptions\IdemityApiException;
-use Idemity\Exceptions\IdemityNetworkException;
-use Idemity\Resources\CollectionsResource;
-use Idemity\Resources\FacesResource;
+use LiveXFace\Exceptions\LiveXFaceApiException;
+use LiveXFace\Exceptions\LiveXFaceNetworkException;
+use LiveXFace\Resources\CollectionsResource;
+use LiveXFace\Resources\FacesResource;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 
 /**
- * Idemity client.
+ * LiveXFace client.
  *
- * In Laravel, resolve it from the container (bound by IdemityServiceProvider)
- * or use the Idemity facade:
+ * In Laravel, resolve it from the container (bound by LiveXFaceServiceProvider)
+ * or use the LiveXFace facade:
  *
- *     $result = Idemity::faces()->identify($collectionId, $imageBytes, topK: 3);
+ *     $result = LiveXFace::faces()->identify($collectionId, $imageBytes, topK: 3);
  *
  * Built on Laravel's HTTP client, so `Http::fake()` works in your tests.
  */
-class IdemityClient
+class LiveXFaceClient
 {
     public readonly CollectionsResource $collections;
     public readonly FacesResource $faces;
 
     public function __construct(
         private readonly string $apiKey,
-        private readonly string $baseUrl = 'https://api.idemity.com/api/v1',
+        private readonly string $baseUrl = 'https://api.livexface.com/api/v1',
         private readonly int $timeout = 30,
         private ?HttpFactory $http = null,
     ) {
@@ -58,7 +58,7 @@ class IdemityClient
     }
 
     /**
-     * Unwrap the standard Idemity envelope {success, data, error, request_id}.
+     * Unwrap the standard LiveXFace envelope {success, data, error, request_id}.
      *
      * @internal
      * @return array<string, mixed>
@@ -67,7 +67,7 @@ class IdemityClient
     {
         $body = $response->json();
         if (! is_array($body)) {
-            throw new IdemityApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
+            throw new LiveXFaceApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
         }
 
         if ($response->successful() && ($body['success'] ?? false)) {
@@ -78,7 +78,7 @@ class IdemityClient
 
         $error = $body['error'] ?? [];
 
-        throw new IdemityApiException(
+        throw new LiveXFaceApiException(
             $error['code'] ?? 'UNKNOWN_ERROR',
             $error['message'] ?? 'An unknown error occurred',
             $response->status(),
@@ -98,7 +98,7 @@ class IdemityClient
         try {
             return $this->unwrap($send($this->request()));
         } catch (ConnectionException $e) {
-            throw new IdemityNetworkException('Idemity request failed: '.$e->getMessage(), $e);
+            throw new LiveXFaceNetworkException('LiveXFace request failed: '.$e->getMessage(), $e);
         }
     }
 }
