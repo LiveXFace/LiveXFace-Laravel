@@ -18,11 +18,11 @@ final class Face
     {
         return new self(
             id: $d['id'],
-            collectionId: $d['collection_id'] ?? '',
-            externalId: $d['external_id'] ?? '',
+            collectionId: $d['collectionId'] ?? '',
+            externalId: $d['externalId'] ?? '',
             metadata: is_array($d['metadata'] ?? null) ? $d['metadata'] : [],
-            imageUrl: $d['image_url'] ?? null,
-            createdAt: $d['created_at'] ?? '',
+            imageUrl: $d['imageUrl'] ?? null,
+            createdAt: $d['createdAt'] ?? '',
         );
     }
 }

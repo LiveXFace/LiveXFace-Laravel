@@ -14,7 +14,7 @@ final class BatchFaceResult
     public static function fromArray(array $d): self
     {
         return new self(
-            externalId: $d['external_id'] ?? '',
+            externalId: $d['externalId'] ?? '',
             face: isset($d['face']) ? Face::fromArray($d['face']) : null,
             error: $d['error'] ?? null,
         );

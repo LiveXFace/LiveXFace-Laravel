@@ -77,28 +77,15 @@ class FacesResource
         );
     }
 
-    /** GDPR erasure — delete all faces registered under an external id. */
-    public function deleteByExternalId(string $collectionId, string $externalId): void
-    {
-        $this->client->call(
-            fn ($req) => $req->delete("/collections/{$collectionId}/faces", [
-                'external_id' => $externalId,
-            ])
-        );
-    }
-
     /** 1:1 verification — compare a probe image against a stored face. */
     public function verify(
         string $collectionId,
         string $image,
-        ?string $faceId = null,
+        string $faceId,
         ?float $threshold = null,
         string $filename = 'image.jpg',
     ): VerifyResult {
-        $fields = [];
-        if ($faceId !== null) {
-            $fields['face_id'] = $faceId;
-        }
+        $fields = ['face_id' => $faceId];
         if ($threshold !== null) {
             $fields['threshold'] = (string) $threshold;
         }
@@ -246,9 +233,14 @@ class FacesResource
 
     private function batchEntries(array $items): string
     {
+        // The entries are JSON, so the key is camelCase. It was external_id,
+        // which the API does not read, falling back to the file's name. That
+        // hid the bug by default, since each file is named after its external
+        // id, but a batch that passed its own filenames was enrolled under
+        // names like "IMG_0192" instead of the ids it gave.
         return json_encode(array_map(
             fn ($item) => [
-                'external_id' => $item['external_id'],
+                'externalId' => $item['external_id'],
                 'metadata' => (object) ($item['metadata'] ?? []),
             ],
             array_values($items),
