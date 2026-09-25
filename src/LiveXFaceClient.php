@@ -4,7 +4,6 @@ namespace LiveXFace;
 
 use LiveXFace\Exceptions\LiveXFaceApiException;
 use LiveXFace\Exceptions\LiveXFaceNetworkException;
-use LiveXFace\Resources\CollectionsResource;
 use LiveXFace\Resources\FacesResource;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
@@ -13,6 +12,9 @@ use Illuminate\Http\Client\Response;
 
 /**
  * LiveXFace client.
+ *
+ * Collections are created and managed in the LiveXFace dashboard; the API has
+ * no endpoints for that, so the client has no collection operations.
  *
  * In Laravel, resolve it from the container (bound by LiveXFaceServiceProvider)
  * or use the LiveXFace facade:
@@ -23,7 +25,6 @@ use Illuminate\Http\Client\Response;
  */
 class LiveXFaceClient
 {
-    public readonly CollectionsResource $collections;
     public readonly FacesResource $faces;
 
     public function __construct(
@@ -33,13 +34,7 @@ class LiveXFaceClient
         private ?HttpFactory $http = null,
     ) {
         $this->http ??= new HttpFactory();
-        $this->collections = new CollectionsResource($this);
         $this->faces = new FacesResource($this);
-    }
-
-    public function collections(): CollectionsResource
-    {
-        return $this->collections;
     }
 
     public function faces(): FacesResource
@@ -58,15 +53,30 @@ class LiveXFaceClient
     }
 
     /**
-     * Unwrap the standard LiveXFace envelope {success, data, error, request_id}.
+     * Unwrap the standard LiveXFace envelope {success, data, error, requestId}.
      *
      * @internal
      * @return array<string, mixed>
      */
     public function unwrap(Response $response): array
     {
+        // A delete answers 204 with no body. That used to be reported as
+        // PARSE_ERROR, so every successful delete threw.
+        if ($response->status() === 204) {
+            return [];
+        }
+
         $body = $response->json();
         if (! is_array($body)) {
+            // An unknown route answers with a plain-text 404, not the JSON
+            // envelope; report the HTTP status rather than a parse failure.
+            if (! $response->successful()) {
+                throw new LiveXFaceApiException(
+                    'HTTP_'.$response->status(),
+                    'Request failed with HTTP '.$response->status(),
+                    $response->status(),
+                );
+            }
             throw new LiveXFaceApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
         }
 
@@ -82,7 +92,7 @@ class LiveXFaceClient
             $error['code'] ?? 'UNKNOWN_ERROR',
             $error['message'] ?? 'An unknown error occurred',
             $response->status(),
-            $body['request_id'] ?? null,
+            $body['requestId'] ?? null,
         );
     }
 

@@ -17,8 +17,8 @@ final class BatchJobResult
     {
         return new self(
             index: (int) ($d['index'] ?? 0),
-            externalId: $d['external_id'] ?? '',
-            faceId: $d['face_id'] ?? null,
+            externalId: $d['externalId'] ?? '',
+            faceId: $d['faceId'] ?? null,
             error: $d['error'] ?? null,
         );
     }

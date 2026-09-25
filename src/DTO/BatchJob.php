@@ -29,15 +29,15 @@ final class BatchJob
     {
         return new self(
             id: $d['id'],
-            collectionId: $d['collection_id'] ?? '',
+            collectionId: $d['collectionId'] ?? '',
             status: $d['status'] ?? '',
             total: (int) ($d['total'] ?? 0),
             processed: (int) ($d['processed'] ?? 0),
             succeeded: (int) ($d['succeeded'] ?? 0),
             failed: (int) ($d['failed'] ?? 0),
             results: array_map(BatchJobResult::fromArray(...), $d['results'] ?? []),
-            createdAt: $d['created_at'] ?? '',
-            updatedAt: $d['updated_at'] ?? '',
+            createdAt: $d['createdAt'] ?? '',
+            updatedAt: $d['updatedAt'] ?? '',
         );
     }
 }
