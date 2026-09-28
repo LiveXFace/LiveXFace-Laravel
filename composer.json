@@ -3,7 +3,14 @@
     "description": "Official Laravel SDK for LiveXFace — Face Recognition as a Service",
     "type": "library",
     "license": "MIT",
-    "keywords": ["face-recognition", "biometrics", "api", "sdk", "laravel", "livexface"],
+    "keywords": [
+        "face-recognition",
+        "biometrics",
+        "api",
+        "sdk",
+        "laravel",
+        "livexface"
+    ],
     "homepage": "https://livexface.com",
     "support": {
         "issues": "https://github.com/livexface/livexface-laravel/issues",
@@ -15,9 +22,17 @@
         "illuminate/http": "^10.0|^11.0|^12.0",
         "guzzlehttp/guzzle": "^7.5"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
     "autoload": {
         "psr-4": {
             "LiveXFace\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "LiveXFace\\Tests\\": "tests/"
         }
     },
     "extra": {
@@ -30,5 +45,8 @@
             }
         }
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "scripts": {
+        "test": "phpunit"
+    }
 }

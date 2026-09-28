@@ -2,6 +2,7 @@
 
 namespace LiveXFace\Resources;
 
+use LiveXFace\DTO\ActiveLivenessResult;
 use LiveXFace\DTO\AttributesResult;
 use LiveXFace\DTO\BatchJob;
 use LiveXFace\DTO\BatchResponse;
@@ -24,17 +25,24 @@ class FacesResource
     {
     }
 
-    /** Enroll a face into a collection. */
+    /**
+     * Enroll a face into a collection. Pass the $livenessToken from a passed
+     * activeLiveness() check when the collection requires liveness.
+     */
     public function register(
         string $collectionId,
         string $image,
         string $externalId,
         array $metadata = [],
         string $filename = 'image.jpg',
+        ?string $livenessToken = null,
     ): Face {
         $fields = ['external_id' => $externalId];
         if ($metadata !== []) {
             $fields['metadata'] = json_encode($metadata);
+        }
+        if ($livenessToken !== null) {
+            $fields['liveness_token'] = $livenessToken;
         }
 
         $data = $this->client->call(
@@ -133,6 +141,27 @@ class FacesResource
         return LivenessResult::fromArray($data);
     }
 
+    /**
+     * Active liveness: analyze 5 to 50 frames (raw JPEG/PNG bytes, in capture
+     * order) for a blink, a head turn and passive anti-spoofing. A passed
+     * check returns a single-use livenessToken (5 minutes, bound to this
+     * collection) to pass to register() or a batch entry.
+     *
+     * @param string[] $frames
+     */
+    public function activeLiveness(string $collectionId, array $frames): ActiveLivenessResult
+    {
+        $data = $this->client->call(function ($req) use ($collectionId, $frames) {
+            foreach (array_values($frames) as $i => $frame) {
+                $req = $req->attach("frame_{$i}", $frame, "frame_{$i}.jpg");
+            }
+
+            return $req->post("/collections/{$collectionId}/active-liveness");
+        });
+
+        return ActiveLivenessResult::fromArray($data);
+    }
+
     /** Compare two images directly, without enrolling either. */
     public function compare(
         string $image1,
@@ -173,7 +202,7 @@ class FacesResource
     /**
      * Synchronously register up to 20 faces in one request.
      *
-     * @param array<int, array{external_id: string, image: string, metadata?: array, filename?: string}> $items
+     * @param array<int, array{external_id: string, image: string, metadata?: array, filename?: string, liveness_token?: string}> $items
      */
     public function batchRegister(string $collectionId, array $items): BatchResponse
     {
@@ -191,7 +220,7 @@ class FacesResource
      * Submit up to 100 faces for asynchronous registration. Returns the job
      * immediately; poll getBatchJob() until $job->isFinished().
      *
-     * @param array<int, array{external_id: string, image: string, metadata?: array, filename?: string}> $items
+     * @param array<int, array{external_id: string, image: string, metadata?: array, filename?: string, liveness_token?: string}> $items
      */
     public function batchRegisterAsync(string $collectionId, array $items): BatchJob
     {
@@ -242,7 +271,7 @@ class FacesResource
             fn ($item) => [
                 'externalId' => $item['external_id'],
                 'metadata' => (object) ($item['metadata'] ?? []),
-            ],
+            ] + (isset($item['liveness_token']) ? ['livenessToken' => $item['liveness_token']] : []),
             array_values($items),
         ));
     }

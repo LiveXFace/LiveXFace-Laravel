@@ -56,6 +56,18 @@ $verdict = LiveXFace::faces()->verify($collectionId, $imageBytes, faceId: $face-
 // Liveness (anti-spoofing)
 $live = LiveXFace::faces()->liveness($collectionId, $imageBytes);
 
+// Active liveness (5-50 frames), then enrol with the single-use token
+$check = LiveXFace::faces()->activeLiveness($collectionId, $frames); // string[] of JPEG/PNG bytes
+if ($check->isLive) {
+    $face = LiveXFace::faces()->register(
+        $collectionId,
+        $frames[0],
+        externalId: 'user_'.$user->id,
+        livenessToken: $check->livenessToken, // valid 5 minutes, one use
+    );
+}
+// Batch entries take it too: ['external_id' => 'u1', 'image' => $b, 'liveness_token' => $t]
+
 // Face attributes (age, gender, emotion, glasses, mask, head pose)
 $attrs = LiveXFace::faces()->attributes($collectionId, $imageBytes);
 
