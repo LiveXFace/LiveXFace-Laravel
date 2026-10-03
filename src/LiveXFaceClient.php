@@ -93,6 +93,7 @@ class LiveXFaceClient
             $error['message'] ?? 'An unknown error occurred',
             $response->status(),
             $body['requestId'] ?? null,
+            isset($error['details']) && is_array($error['details']) ? $error['details'] : null,
         );
     }
 
