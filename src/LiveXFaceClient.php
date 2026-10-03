@@ -8,6 +8,7 @@ use LiveXFace\Resources\FacesResource;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 
 /**
@@ -22,6 +23,13 @@ use Illuminate\Http\Client\Response;
  *     $result = LiveXFace::faces()->identify($collectionId, $imageBytes, topK: 3);
  *
  * Built on Laravel's HTTP client, so `Http::fake()` works in your tests.
+ *
+ * Retries are off unless $maxRetries > 0 (attempts after the first). Then a
+ * 429 or 503 is retried after its Retry-After (capped at $maxRetryDelay
+ * seconds) or an exponential backoff with jitter; a network error or other
+ * 5xx only for GET, PATCH and DELETE and for calls carrying an idempotency
+ * key; any other 4xx never. Enrolment and batch calls get one generated
+ * Idempotency-Key per call, sent on every attempt, when the caller gave none.
  */
 class LiveXFaceClient
 {
@@ -32,14 +40,29 @@ class LiveXFaceClient
         private readonly string $baseUrl = 'https://api.livexface.com/api/v1',
         private readonly int $timeout = 30,
         private ?HttpFactory $http = null,
+        private readonly int $maxRetries = 0,
+        private readonly float $maxRetryDelay = 60.0,
+        /** Called with the delay in seconds before each retry; tests inject a recorder. */
+        private ?\Closure $sleep = null,
     ) {
         $this->http ??= new HttpFactory();
+        $this->sleep ??= static fn (float $seconds) => usleep((int) ($seconds * 1_000_000));
         $this->faces = new FacesResource($this);
     }
 
     public function faces(): FacesResource
     {
         return $this->faces;
+    }
+
+    /** A random UUID v4, for the $idempotencyKey of an enrolment or batch call. */
+    public static function generateIdempotencyKey(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
     }
 
     /** @internal */
@@ -75,6 +98,7 @@ class LiveXFaceClient
                     'HTTP_'.$response->status(),
                     'Request failed with HTTP '.$response->status(),
                     $response->status(),
+                    retryAfter: self::retryAfter($response),
                 );
             }
             throw new LiveXFaceApiException('PARSE_ERROR', 'Unparseable API response', $response->status());
@@ -94,22 +118,67 @@ class LiveXFaceClient
             $response->status(),
             $body['requestId'] ?? null,
             isset($error['details']) && is_array($error['details']) ? $error['details'] : null,
+            self::retryAfter($response),
         );
     }
 
+    /** Retry-After in whole seconds; null when absent or not an integer (e.g. an HTTP date). */
+    private static function retryAfter(Response $response): ?int
+    {
+        $value = trim($response->header('Retry-After'));
+
+        return ctype_digit($value) ? (int) $value : null;
+    }
+
     /**
-     * Send a request built by $send, translating transport failures.
+     * Send a request built by $send, translating transport failures and
+     * retrying per the client's policy. $send runs again on each attempt, so
+     * multipart bodies are rebuilt. $idempotent marks enrolment and batch
+     * calls, which get a generated key when retries are on and none was given.
      *
      * @internal
      * @param callable(PendingRequest): Response $send
      * @return array<string, mixed>
      */
-    public function call(callable $send): array
+    public function call(callable $send, ?string $idempotencyKey = null, bool $idempotent = false): array
     {
-        try {
-            return $this->unwrap($send($this->request()));
-        } catch (ConnectionException $e) {
-            throw new LiveXFaceNetworkException('LiveXFace request failed: '.$e->getMessage(), $e);
+        if ($idempotent && $idempotencyKey === null && $this->maxRetries > 0) {
+            $idempotencyKey = self::generateIdempotencyKey();
+        }
+
+        for ($attempt = 0; ; $attempt++) {
+            $method = null;
+            $request = $this->request()->beforeSending(function (Request $r) use (&$method) {
+                $method = $r->method();
+            });
+            if ($idempotencyKey !== null) {
+                $request = $request->withHeaders(['Idempotency-Key' => $idempotencyKey]);
+            }
+
+            try {
+                return $this->unwrap($send($request));
+            } catch (ConnectionException $e) {
+                $error = new LiveXFaceNetworkException('LiveXFace request failed: '.$e->getMessage(), $e);
+                $status = 0;
+            } catch (LiveXFaceApiException $e) {
+                $error = $e;
+                $status = $e->status;
+            }
+
+            // Safe to repeat after it may have run: a read, a metadata update,
+            // a delete, or a call the server deduplicates by its key.
+            $safe = $idempotencyKey !== null || in_array($method, ['GET', 'PATCH', 'DELETE'], true);
+            $retryable = $status === 429 || $status === 503
+                || ($safe && ($error instanceof LiveXFaceNetworkException || $status >= 500));
+
+            if (! $retryable || $attempt >= $this->maxRetries) {
+                throw $error;
+            }
+
+            $delay = $error instanceof LiveXFaceApiException && $error->retryAfter !== null
+                ? $error->retryAfter
+                : mt_rand() / mt_getrandmax() * 0.5 * 2 ** $attempt;
+            ($this->sleep)(min($delay, $this->maxRetryDelay));
         }
     }
 }

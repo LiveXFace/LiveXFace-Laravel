@@ -24,4 +24,16 @@ return [
     |--------------------------------------------------------------------------
     */
     'timeout' => (int) env('LIVEXFACE_TIMEOUT', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retries
+    |--------------------------------------------------------------------------
+    | Off by default. max_retries is the number of attempts after the first.
+    | 429 and 503 are retried after their Retry-After (capped at
+    | max_retry_delay seconds); network errors and other 5xx only for reads,
+    | deletes and calls carrying an idempotency key; other 4xx never.
+    */
+    'max_retries' => (int) env('LIVEXFACE_MAX_RETRIES', 0),
+    'max_retry_delay' => (float) env('LIVEXFACE_MAX_RETRY_DELAY', 60),
 ];

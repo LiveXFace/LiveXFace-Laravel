@@ -20,6 +20,8 @@ class LiveXFaceServiceProvider extends ServiceProvider
                 baseUrl: $config['base_url'] ?? 'https://api.livexface.com/api/v1',
                 timeout: (int) ($config['timeout'] ?? 30),
                 http: $app->make(HttpFactory::class),
+                maxRetries: (int) ($config['max_retries'] ?? 0),
+                maxRetryDelay: (float) ($config['max_retry_delay'] ?? 60),
             );
         });
 
