@@ -87,7 +87,9 @@ Dependency injection works too — type-hint `LiveXFace\LiveXFaceClient` anywher
 ## Error handling
 
 All API errors raise `LiveXFace\Exceptions\LiveXFaceApiException` carrying the API
-error code, HTTP status, and request id:
+error code (`errorCode`), HTTP `status`, `requestId`, `details` (when the API sends
+them) and `retryAfter` (seconds from a `Retry-After` header, else `null`; also
+`getRetryAfter()`):
 
 ```php
 try {
@@ -98,6 +100,58 @@ try {
 ```
 
 Transport failures (DNS, timeouts) raise `LiveXFace\Exceptions\LiveXFaceNetworkException`.
+
+## Idempotent requests
+
+`register()`, `batchRegister()` and `batchRegisterAsync()` take an `idempotencyKey`,
+sent as the `Idempotency-Key` header. For 24 hours, repeating a call with the same
+key returns the stored answer instead of enrolling again; a replayed answer carries
+the `Idempotent-Replayed: true` header. Reusing a key for a different request is
+answered 422 `IDEMPOTENCY_KEY_MISMATCH`, and while the first call is still running,
+409 `IDEMPOTENCY_KEY_IN_USE`.
+
+429 and 5xx answers are not remembered, so retrying with the same key runs the
+request again. Any other 4xx (e.g. 422 `NO_FACE_DETECTED`) is remembered: a new
+attempt, say with a better photo, needs a new key.
+
+```php
+use LiveXFace\LiveXFaceClient;
+
+$key = LiveXFaceClient::generateIdempotencyKey(); // a random UUID v4; store it with your job
+$face = LiveXFace::faces()->register($collectionId, $bytes, externalId: 'u1', idempotencyKey: $key);
+```
+
+## Production retries
+
+Retries are off by default. Turn them on with `LIVEXFACE_MAX_RETRIES` (attempts after
+the first; `LIVEXFACE_MAX_RETRY_DELAY` caps the wait, default 60 s), or
+`maxRetries:` / `maxRetryDelay:` when constructing the client yourself:
+
+- 429 and 503 are retried after their `Retry-After`, or an exponential backoff with jitter;
+- network errors and other 5xx are retried only for reads, deletes and calls that carry an
+  idempotency key, so a plain POST such as `identify()` is never sent twice after it may have run;
+- other 4xx are never retried.
+
+Enrolment and batch calls send one idempotency key on every attempt, generating it
+when you gave none.
+
+```php
+$client = new LiveXFaceClient(apiKey: env('LIVEXFACE_KEY'), maxRetries: 3);
+
+try {
+    $face = $client->faces()->register(
+        $collectionId,
+        $bytes,
+        externalId: 'u1',
+        idempotencyKey: $job->idempotencyKey, // the same key if your job itself is retried
+    );
+} catch (\LiveXFace\Exceptions\LiveXFaceApiException $e) {
+    if ($e->isRateLimited()) {
+        $this->release($e->retryAfter ?? 30); // requeue the job
+    }
+    Log::warning('enrolment failed', ['code' => $e->errorCode, 'requestId' => $e->requestId]);
+}
+```
 
 ## Requirements
 

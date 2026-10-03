@@ -28,6 +28,10 @@ class FacesResource
     /**
      * Enroll a face into a collection. Pass the $livenessToken from a passed
      * activeLiveness() check when the collection requires liveness.
+     *
+     * An $idempotencyKey (e.g. LiveXFaceClient::generateIdempotencyKey())
+     * makes a repeat of this call within 24 hours replay the first answer
+     * instead of enrolling the face twice.
      */
     public function register(
         string $collectionId,
@@ -36,6 +40,7 @@ class FacesResource
         array $metadata = [],
         string $filename = 'image.jpg',
         ?string $livenessToken = null,
+        ?string $idempotencyKey = null,
     ): Face {
         $fields = ['external_id' => $externalId];
         if ($metadata !== []) {
@@ -47,7 +52,9 @@ class FacesResource
 
         $data = $this->client->call(
             fn ($req) => $req->attach('image', $image, $filename)
-                ->post("/collections/{$collectionId}/faces", $fields)
+                ->post("/collections/{$collectionId}/faces", $fields),
+            $idempotencyKey,
+            idempotent: true,
         );
 
         return Face::fromArray($data);
@@ -204,13 +211,15 @@ class FacesResource
      *
      * @param array<int, array{external_id: string, image: string, metadata?: array, filename?: string, liveness_token?: string}> $items
      */
-    public function batchRegister(string $collectionId, array $items): BatchResponse
+    public function batchRegister(string $collectionId, array $items, ?string $idempotencyKey = null): BatchResponse
     {
         $data = $this->client->call(
             fn ($req) => $this->attachBatch($req, $items)
                 ->post("/collections/{$collectionId}/faces/batch", [
                     'entries' => $this->batchEntries($items),
-                ])
+                ]),
+            $idempotencyKey,
+            idempotent: true,
         );
 
         return BatchResponse::fromArray($data);
@@ -222,13 +231,15 @@ class FacesResource
      *
      * @param array<int, array{external_id: string, image: string, metadata?: array, filename?: string, liveness_token?: string}> $items
      */
-    public function batchRegisterAsync(string $collectionId, array $items): BatchJob
+    public function batchRegisterAsync(string $collectionId, array $items, ?string $idempotencyKey = null): BatchJob
     {
         $data = $this->client->call(
             fn ($req) => $this->attachBatch($req, $items)
                 ->post("/collections/{$collectionId}/faces/batch-async", [
                     'entries' => $this->batchEntries($items),
-                ])
+                ]),
+            $idempotencyKey,
+            idempotent: true,
         );
 
         return BatchJob::fromArray($data);

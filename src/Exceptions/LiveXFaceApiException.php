@@ -21,8 +21,15 @@ class LiveXFaceApiException extends RuntimeException
         public readonly ?string $requestId = null,
         /** Machine-readable context when the API sends it, e.g. faceCount and faces for MULTIPLE_FACES. */
         public readonly ?array $details = null,
+        /** Seconds from the response's Retry-After header (429, 503), when it had one. */
+        public readonly ?int $retryAfter = null,
     ) {
         parent::__construct($message, $status);
+    }
+
+    public function getRetryAfter(): ?int
+    {
+        return $this->retryAfter;
     }
 
     public function isNoFaceDetected(): bool
