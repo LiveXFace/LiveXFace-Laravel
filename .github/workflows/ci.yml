@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Test (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ["8.1", "8.3"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      # composer.lock is not committed, so this resolves the newest versions
+      # that satisfy composer.json for each PHP version.
+      - run: composer update --no-interaction --prefer-dist --no-progress
+      - name: Lint
+        run: find src tests -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: Test
+        run: vendor/bin/phpunit
