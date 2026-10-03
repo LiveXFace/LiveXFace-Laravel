@@ -33,6 +33,9 @@ use Illuminate\Http\Client\Response;
  */
 class LiveXFaceClient
 {
+    /** The API contract (`/openapi.json` `info.version`) this release was validated against. */
+    public const CONTRACT_VERSION = '1.0.0';
+
     public readonly FacesResource $faces;
 
     public function __construct(
