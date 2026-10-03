@@ -11,6 +11,8 @@ Official Laravel SDK for [LiveXFace](https://livexface.com) — Face Recognition
 
 Built on Laravel's HTTP client, so `Http::fake()` works out of the box in your tests.
 
+Validated against API contract 1.0.0 (`/openapi.json` `info.version`), also exposed as `LiveXFaceClient::CONTRACT_VERSION`. `tests/ContractTest.php` calls every SDK method and checks its HTTP method, path and required fields against the pinned `contract/openapi-1.0.0.json`; to move to a new contract, copy the release asset `openapi-<version>.json` into `contract/` and update `CONTRACT_VERSION` and the constant.
+
 ## Installation
 
 ```bash
