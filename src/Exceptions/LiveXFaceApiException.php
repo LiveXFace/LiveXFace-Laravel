@@ -19,6 +19,8 @@ class LiveXFaceApiException extends RuntimeException
         string $message,
         public readonly int $status,
         public readonly ?string $requestId = null,
+        /** Machine-readable context when the API sends it, e.g. faceCount and faces for MULTIPLE_FACES. */
+        public readonly ?array $details = null,
     ) {
         parent::__construct($message, $status);
     }
