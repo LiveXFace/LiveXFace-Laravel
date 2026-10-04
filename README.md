@@ -11,7 +11,7 @@ Official Laravel SDK for [LiveXFace](https://livexface.com) — Face Recognition
 
 Built on Laravel's HTTP client, so `Http::fake()` works out of the box in your tests.
 
-Validated against API contract 1.0.0 (`/openapi.json` `info.version`), also exposed as `LiveXFaceClient::CONTRACT_VERSION`. `tests/ContractTest.php` calls every SDK method and checks its HTTP method, path and required fields against the pinned `contract/openapi-1.0.0.json`; to move to a new contract, copy the release asset `openapi-<version>.json` into `contract/` and update `CONTRACT_VERSION` and the constant.
+Validated against API contract 2.0.0 (`/openapi.json` `info.version`), also exposed as `LiveXFaceClient::CONTRACT_VERSION`. `tests/ContractTest.php` calls every SDK method and checks its HTTP method, path and required fields against the pinned `contract/openapi-2.0.0.json`; to move to a new contract, copy the release asset `openapi-<version>.json` into `contract/` and update `CONTRACT_VERSION` and the constant.
 
 ## Installation
 
@@ -58,17 +58,29 @@ $verdict = LiveXFace::faces()->verify($collectionId, $imageBytes, faceId: $face-
 // Liveness (anti-spoofing)
 $live = LiveXFace::faces()->liveness($collectionId, $imageBytes);
 
-// Active liveness (5-50 frames), then enrol with the single-use token
-$check = LiveXFace::faces()->activeLiveness($collectionId, $frames); // string[] of JPEG/PNG bytes
-if ($check->isLive) {
+// Liveness session: the server picks the steps, you show them, then submit the frames
+$session = LiveXFace::faces()->createLivenessSession($collectionId);
+// $session->challenges, in order: 'blink', 'turn_left' or 'turn_right' (the person's own left/right).
+// Show each prompt and capture 5-50 frames (JPEG/PNG bytes) before $session->expiresAt (60 s).
+$result = LiveXFace::faces()->completeLivenessSession(
+    $collectionId,
+    $session->sessionId,
+    $frames,
+    mirrored: false, // true if the frames are flipped like a selfie preview
+);
+// $result->steps: each step's ->type and ->passed
+if ($result->isLive && $result->livenessToken !== null) {
     $face = LiveXFace::faces()->register(
         $collectionId,
         $frames[0],
         externalId: 'user_'.$user->id,
-        livenessToken: $check->livenessToken, // valid 5 minutes, one use
+        livenessToken: $result->livenessToken, // valid 5 minutes, one use
     );
 }
 // Batch entries take it too: ['external_id' => 'u1', 'image' => $b, 'liveness_token' => $t]
+
+// Stateless active liveness: a verdict only, no token
+$check = LiveXFace::faces()->activeLiveness($collectionId, $frames);
 
 // Face attributes (age, gender, emotion, glasses, mask, head pose)
 $attrs = LiveXFace::faces()->attributes($collectionId, $imageBytes);
@@ -101,6 +113,12 @@ try {
 }
 ```
 
+A liveness session is judged once. `completeLivenessSession()` answers 422
+`LIVENESS_SESSION_INVALID` (`$e->isLivenessSessionInvalid()`) when the session is
+unknown, expired, already submitted, or bound to another collection; 400
+`IMAGE_REQUIRED` (fewer than 5 frames) keeps the session. On either error, a
+503 `SERVICE_BUSY` or a network error, create a new session and capture again.
+
 Transport failures (DNS, timeouts) raise `LiveXFace\Exceptions\LiveXFaceNetworkException`.
 
 ## Idempotent requests
@@ -132,7 +150,10 @@ the first; `LIVEXFACE_MAX_RETRY_DELAY` caps the wait, default 60 s), or
 - 429 and 503 are retried after their `Retry-After`, or an exponential backoff with jitter;
 - network errors and other 5xx are retried only for reads, deletes and calls that carry an
   idempotency key, so a plain POST such as `identify()` is never sent twice after it may have run;
-- other 4xx are never retried.
+- other 4xx are never retried;
+- `completeLivenessSession()` is retried only on 429, which the rate limiter answers before
+  the session is touched. A 503 or network error may come after the session was used up, so
+  it is raised for you to start a new session rather than retried into `LIVENESS_SESSION_INVALID`.
 
 Enrolment and batch calls send one idempotency key on every attempt, generating it
 when you gave none.

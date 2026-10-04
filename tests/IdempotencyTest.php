@@ -222,4 +222,46 @@ final class IdempotencyTest extends TestCase
         $this->assertSame('f-1', $face->id);
         $this->assertCount(2, $this->requests);
     }
+
+    public function testLivenessSessionCompletionIsNotRetriedOnNetworkError(): void
+    {
+        $this->answer(['drop'], [200, ['success' => true, 'data' => ['isLive' => true]]]);
+
+        try {
+            $this->client(maxRetries: 3)->faces()->completeLivenessSession('col', 'lvs_1', array_fill(0, 5, 'x'));
+            $this->fail('expected LiveXFaceNetworkException');
+        } catch (LiveXFaceNetworkException) {
+        }
+        $this->assertCount(1, $this->requests);
+        $this->assertFalse($this->requests[0]->hasHeader('Idempotency-Key'));
+    }
+
+    public function testLivenessSessionCompletionIsNotRetriedOn503(): void
+    {
+        // The engine answers 503 after the session was used up; a retry
+        // would only turn SERVICE_BUSY into LIVENESS_SESSION_INVALID.
+        $this->answer([503, self::error('SERVICE_BUSY'), ['Retry-After' => '1']], [200, ['success' => true, 'data' => []]]);
+
+        try {
+            $this->client(maxRetries: 3)->faces()->completeLivenessSession('col', 'lvs_1', array_fill(0, 5, 'x'));
+            $this->fail('expected LiveXFaceApiException');
+        } catch (LiveXFaceApiException $e) {
+            $this->assertSame('SERVICE_BUSY', $e->errorCode);
+        }
+        $this->assertCount(1, $this->requests);
+    }
+
+    public function testLivenessSessionCompletionIsRetriedOn429(): void
+    {
+        $this->answer(
+            [429, self::error('RATE_LIMIT_EXCEEDED'), ['Retry-After' => '2']],
+            [200, ['success' => true, 'data' => ['isLive' => true]]],
+        );
+
+        $result = $this->client(maxRetries: 1)->faces()->completeLivenessSession('col', 'lvs_1', array_fill(0, 5, 'x'));
+
+        $this->assertTrue($result->isLive);
+        $this->assertCount(2, $this->requests);
+        $this->assertSame([2.0], $this->sleeps);
+    }
 }

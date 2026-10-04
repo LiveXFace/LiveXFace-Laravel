@@ -3,12 +3,14 @@
 namespace LiveXFace\DTO;
 
 /**
- * Result of a stateless active (multi-frame) liveness check: a verdict only.
- * It issues no liveness token; to enrol into a collection that requires
- * liveness, complete a liveness session instead (LivenessSessionResult).
+ * Result of completing a liveness session: the active-liveness verdict plus
+ * $steps, the session's challenges in order. When it passes, $livenessToken
+ * is set: a single-use token, valid for 5 minutes and bound to the
+ * organization and collection, that register() / batch entries accept.
  */
-final class ActiveLivenessResult
+final class LivenessSessionResult
 {
+    /** @param LivenessStep[] $steps */
     public function __construct(
         public readonly bool $isLive,
         public readonly float $overallScore,
@@ -17,6 +19,9 @@ final class ActiveLivenessResult
         public readonly LivenessChallenge $blink,
         public readonly LivenessChallenge $headTurn,
         public readonly LivenessChallenge $passiveAntispoof,
+        public readonly array $steps,
+        public readonly ?string $livenessToken,
+        public readonly ?string $livenessTokenExpiresAt,
     ) {
     }
 
@@ -32,6 +37,9 @@ final class ActiveLivenessResult
             blink: LivenessChallenge::fromArray($c['blink'] ?? []),
             headTurn: LivenessChallenge::fromArray($c['headTurn'] ?? []),
             passiveAntispoof: LivenessChallenge::fromArray($c['passiveAntispoof'] ?? []),
+            steps: array_map(LivenessStep::fromArray(...), $d['steps'] ?? []),
+            livenessToken: $d['livenessToken'] ?? null,
+            livenessTokenExpiresAt: $d['livenessTokenExpiresAt'] ?? null,
         );
     }
 }
