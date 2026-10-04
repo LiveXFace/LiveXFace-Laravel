@@ -9,6 +9,8 @@ use LiveXFace\DTO\BatchResponse;
 use LiveXFace\DTO\Face;
 use LiveXFace\DTO\IdentifyResult;
 use LiveXFace\DTO\LivenessResult;
+use LiveXFace\DTO\LivenessSession;
+use LiveXFace\DTO\LivenessSessionResult;
 use LiveXFace\DTO\VerifyResult;
 use LiveXFace\Exceptions\LiveXFaceApiException;
 use LiveXFace\LiveXFaceClient;
@@ -27,7 +29,7 @@ class FacesResource
 
     /**
      * Enroll a face into a collection. Pass the $livenessToken from a passed
-     * activeLiveness() check when the collection requires liveness.
+     * completeLivenessSession() when the collection requires liveness.
      *
      * An $idempotencyKey (e.g. LiveXFaceClient::generateIdempotencyKey())
      * makes a repeat of this call within 24 hours replay the first answer
@@ -149,24 +151,68 @@ class FacesResource
     }
 
     /**
-     * Active liveness: analyze 5 to 50 frames (raw JPEG/PNG bytes, in capture
-     * order) for a blink, a head turn and passive anti-spoofing. A passed
-     * check returns a single-use livenessToken (5 minutes, bound to this
-     * collection) to pass to register() or a batch entry.
+     * Stateless active liveness: analyze 5 to 50 frames (raw JPEG/PNG bytes,
+     * in capture order) for a blink, a head turn and passive anti-spoofing.
+     * Returns a verdict only and issues no liveness token; to enrol with
+     * liveness, use createLivenessSession() and completeLivenessSession().
      *
      * @param string[] $frames
      */
     public function activeLiveness(string $collectionId, array $frames): ActiveLivenessResult
     {
-        $data = $this->client->call(function ($req) use ($collectionId, $frames) {
-            foreach (array_values($frames) as $i => $frame) {
-                $req = $req->attach("frame_{$i}", $frame, "frame_{$i}.jpg");
-            }
-
-            return $req->post("/collections/{$collectionId}/active-liveness");
-        });
+        $data = $this->client->call(
+            fn ($req) => $this->attachFrames($req, $frames)
+                ->post("/collections/{$collectionId}/active-liveness")
+        );
 
         return ActiveLivenessResult::fromArray($data);
+    }
+
+    /**
+     * Start a liveness session bound to this collection. Show the person its
+     * $challenges in order, capture frames while they perform them, and pass
+     * the frames to completeLivenessSession() before $expiresAt (60 s by
+     * default).
+     */
+    public function createLivenessSession(string $collectionId): LivenessSession
+    {
+        // No body: post() would send an empty JSON array.
+        $data = $this->client->call(
+            fn ($req) => $req->send('POST', "/collections/{$collectionId}/liveness-sessions")
+        );
+
+        return LivenessSession::fromArray($data);
+    }
+
+    /**
+     * Submit 5 to 50 frames (raw JPEG/PNG bytes, in capture order) for a
+     * liveness session, once. A pass carries a single-use livenessToken for
+     * register() or a batch entry. Set $mirrored when the frames are
+     * horizontally mirrored, as a selfie preview is.
+     *
+     * Any submission except one with fewer than 5 frames uses the session
+     * up, so this call is never retried after it may have reached the server
+     * (network error, 5xx), even with retries on: on SERVICE_BUSY or a
+     * network error, create a new session. 422 LIVENESS_SESSION_INVALID means
+     * the session is unknown, expired, already used or bound elsewhere.
+     *
+     * @param string[] $frames
+     */
+    public function completeLivenessSession(
+        string $collectionId,
+        string $sessionId,
+        array $frames,
+        bool $mirrored = false,
+    ): LivenessSessionResult {
+        $data = $this->client->call(
+            fn ($req) => $this->attachFrames($req, $frames)
+                ->post("/collections/{$collectionId}/liveness-sessions/{$sessionId}", [
+                    'mirrored' => $mirrored ? 'true' : 'false',
+                ]),
+            singleUse: true,
+        );
+
+        return LivenessSessionResult::fromArray($data);
     }
 
     /** Compare two images directly, without enrolling either. */
@@ -253,6 +299,15 @@ class FacesResource
         );
 
         return BatchJob::fromArray($data);
+    }
+
+    private function attachFrames(object $req, array $frames): object
+    {
+        foreach (array_values($frames) as $i => $frame) {
+            $req = $req->attach("frame_{$i}", $frame, "frame_{$i}.jpg");
+        }
+
+        return $req;
     }
 
     private function attachBatch(object $req, array $items): object

@@ -10,7 +10,8 @@ use RuntimeException;
  * status, and the request id for support correlation.
  *
  * Liveness-gated enrolment codes: LIVENESS_TOKEN_REQUIRED (400),
- * LIVENESS_TOKEN_INVALID (422), LIVENESS_FACE_MISMATCH (422).
+ * LIVENESS_TOKEN_INVALID (422), LIVENESS_FACE_MISMATCH (422). Liveness
+ * sessions: LIVENESS_SESSION_INVALID (422).
  */
 class LiveXFaceApiException extends RuntimeException
 {
@@ -45,6 +46,12 @@ class LiveXFaceApiException extends RuntimeException
             'LIVENESS_TOKEN_INVALID',
             'LIVENESS_FACE_MISMATCH',
         ], true);
+    }
+
+    /** The liveness session is unknown, expired, already submitted, or bound to another collection; create a new one. */
+    public function isLivenessSessionInvalid(): bool
+    {
+        return $this->errorCode === 'LIVENESS_SESSION_INVALID';
     }
 
     public function isRateLimited(): bool

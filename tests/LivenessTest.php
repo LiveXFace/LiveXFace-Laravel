@@ -4,6 +4,7 @@ namespace LiveXFace\Tests;
 
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\Request;
+use LiveXFace\Exceptions\LiveXFaceApiException;
 use LiveXFace\LiveXFaceClient;
 use PHPUnit\Framework\TestCase;
 
@@ -42,7 +43,7 @@ final class LivenessTest extends TestCase
         return $recorded[0][0];
     }
 
-    public function testActiveLivenessSendsFramesAndParsesToken(): void
+    public function testActiveLivenessSendsFramesAndHasNoToken(): void
     {
         $this->fake([
             'isLive' => true,
@@ -54,8 +55,6 @@ final class LivenessTest extends TestCase
                 'headTurn' => ['passed' => true, 'available' => true, 'yawRange' => 31.5],
                 'passiveAntispoof' => ['passed' => null, 'available' => false],
             ],
-            'livenessToken' => 'lt_abc',
-            'livenessTokenExpiresAt' => '2026-09-28T10:05:00Z',
         ]);
 
         $frames = array_map(fn ($i) => "jpeg-{$i}", range(0, 5));
@@ -72,35 +71,114 @@ final class LivenessTest extends TestCase
         $this->assertTrue($result->isLive);
         $this->assertSame(0.93, $result->overallScore);
         $this->assertSame(6, $result->framesWithFace);
-        $this->assertSame('lt_abc', $result->livenessToken);
-        $this->assertSame('2026-09-28T10:05:00Z', $result->livenessTokenExpiresAt);
         $this->assertTrue($result->blink->passed);
         $this->assertSame(['blinkCount' => 2], $result->blink->metrics);
         $this->assertSame(31.5, $result->headTurn->metrics['yawRange']);
         $this->assertNull($result->passiveAntispoof->passed);
         $this->assertFalse($result->passiveAntispoof->available);
+        // The stateless check issues no token since contract 2.0.0.
+        $this->assertFalse(property_exists($result, 'livenessToken'));
+        $this->assertFalse(property_exists($result, 'livenessTokenExpiresAt'));
     }
 
-    public function testFailedActiveLivenessHasNoToken(): void
+    public function testCreateLivenessSessionReturnsChallengesInOrder(): void
+    {
+        $this->http->fake(['*' => HttpFactory::response(['success' => true, 'data' => [
+            'sessionId' => 'lvs_abc',
+            'challenges' => [['type' => 'turn_left'], ['type' => 'blink'], ['type' => 'turn_right']],
+            'expiresAt' => '2026-10-03T10:01:00Z',
+        ]], 201)]);
+
+        $session = $this->client->faces()->createLivenessSession('col_1');
+
+        $request = $this->onlyRequest();
+        $this->assertSame('POST', $request->method());
+        $this->assertSame('https://api.test/api/v1/collections/col_1/liveness-sessions', $request->url());
+        $this->assertSame('', $request->body());
+        $this->assertSame('lvs_abc', $session->sessionId);
+        $this->assertSame(['turn_left', 'blink', 'turn_right'], $session->challenges);
+        $this->assertSame('2026-10-03T10:01:00Z', $session->expiresAt);
+    }
+
+    public function testCompleteLivenessSessionSendsFramesAndMirroredAndParsesStepsAndToken(): void
+    {
+        $this->fake([
+            'isLive' => true,
+            'overallScore' => 0.91,
+            'framesAnalyzed' => 25,
+            'framesWithFace' => 24,
+            'challenges' => [
+                'blink' => ['passed' => true, 'available' => true],
+                'headTurn' => ['passed' => true, 'available' => true],
+                'passiveAntispoof' => ['passed' => true, 'available' => true, 'score' => 0.9],
+            ],
+            'steps' => [['type' => 'turn_left', 'passed' => true], ['type' => 'blink', 'passed' => true]],
+            'livenessToken' => 'lt_abc',
+            'livenessTokenExpiresAt' => '2026-10-03T10:05:00Z',
+        ]);
+
+        $frames = array_map(fn ($i) => "jpeg-{$i}", range(0, 4));
+        $result = $this->client->faces()->completeLivenessSession('col_1', 'lvs_abc', $frames, mirrored: true);
+
+        $request = $this->onlyRequest();
+        $this->assertSame('POST', $request->method());
+        $this->assertSame('https://api.test/api/v1/collections/col_1/liveness-sessions/lvs_abc', $request->url());
+        $this->assertFalse($request->hasHeader('Idempotency-Key'));
+        $parts = $this->parts($request);
+        $frameNames = array_values(array_filter(array_keys($parts), fn ($n) => str_starts_with($n, 'frame_')));
+        $this->assertSame(array_map(fn ($i) => "frame_{$i}", range(0, 4)), $frameNames);
+        $this->assertCount(6, $parts);
+        $this->assertSame('jpeg-2', $parts['frame_2']['contents']);
+        $this->assertSame('true', $parts['mirrored']['contents']);
+
+        $this->assertTrue($result->isLive);
+        $this->assertSame(25, $result->framesAnalyzed);
+        $this->assertSame(0.9, $result->passiveAntispoof->metrics['score']);
+        $this->assertCount(2, $result->steps);
+        $this->assertSame('turn_left', $result->steps[0]->type);
+        $this->assertTrue($result->steps[1]->passed);
+        $this->assertSame('lt_abc', $result->livenessToken);
+        $this->assertSame('2026-10-03T10:05:00Z', $result->livenessTokenExpiresAt);
+    }
+
+    public function testFailedLivenessSessionHasNoToken(): void
     {
         $this->fake([
             'isLive' => false,
-            'overallScore' => 0.21,
+            'overallScore' => 0.4,
             'framesAnalyzed' => 5,
             'framesWithFace' => 5,
-            'challenges' => [
-                'blink' => ['passed' => false, 'available' => true, 'blinkCount' => 0],
-                'headTurn' => ['passed' => true, 'available' => true],
-                'passiveAntispoof' => ['passed' => true, 'available' => true, 'score' => 0.8],
-            ],
+            'challenges' => [],
+            'steps' => [['type' => 'blink', 'passed' => true], ['type' => 'turn_right', 'passed' => false]],
         ]);
 
-        $result = $this->client->faces()->activeLiveness('col_1', array_fill(0, 5, 'x'));
+        $result = $this->client->faces()->completeLivenessSession('col_1', 'lvs_abc', array_fill(0, 5, 'x'));
 
+        $this->assertSame('false', $this->parts($this->onlyRequest())['mirrored']['contents']);
         $this->assertFalse($result->isLive);
-        $this->assertFalse($result->blink->passed);
+        $this->assertFalse($result->steps[1]->passed);
         $this->assertNull($result->livenessToken);
         $this->assertNull($result->livenessTokenExpiresAt);
+    }
+
+    public function testInvalidLivenessSessionSurfacesAsApiException(): void
+    {
+        $this->http->fake(['*' => HttpFactory::response([
+            'success' => false,
+            'requestId' => 'req-7',
+            'error' => ['code' => 'LIVENESS_SESSION_INVALID', 'message' => 'liveness session is invalid or expired'],
+        ], 422)]);
+
+        try {
+            $this->client->faces()->completeLivenessSession('col_1', 'lvs_used', array_fill(0, 5, 'x'));
+            $this->fail('expected LiveXFaceApiException');
+        } catch (LiveXFaceApiException $e) {
+            $this->assertSame('LIVENESS_SESSION_INVALID', $e->errorCode);
+            $this->assertSame(422, $e->status);
+            $this->assertSame('req-7', $e->requestId);
+            $this->assertTrue($e->isLivenessSessionInvalid());
+            $this->assertFalse($e->isLivenessTokenError());
+        }
     }
 
     public function testRegisterSendsLivenessTokenOnlyWhenGiven(): void

@@ -30,11 +30,13 @@ use Illuminate\Http\Client\Response;
  * 5xx only for GET, PATCH and DELETE and for calls carrying an idempotency
  * key; any other 4xx never. Enrolment and batch calls get one generated
  * Idempotency-Key per call, sent on every attempt, when the caller gave none.
+ * A liveness-session completion is retried only on 429, since any attempt
+ * that reached the server may have used the session up.
  */
 class LiveXFaceClient
 {
     /** The API contract (`/openapi.json` `info.version`) this release was validated against. */
-    public const CONTRACT_VERSION = '1.0.0';
+    public const CONTRACT_VERSION = '2.0.0';
 
     public readonly FacesResource $faces;
 
@@ -138,12 +140,15 @@ class LiveXFaceClient
      * retrying per the client's policy. $send runs again on each attempt, so
      * multipart bodies are rebuilt. $idempotent marks enrolment and batch
      * calls, which get a generated key when retries are on and none was given.
+     * $singleUse marks a call the server can act on only once (a liveness
+     * session completion): it is retried only on 429, which the rate limiter
+     * answers before the request is handled, never on 503 or a network error.
      *
      * @internal
      * @param callable(PendingRequest): Response $send
      * @return array<string, mixed>
      */
-    public function call(callable $send, ?string $idempotencyKey = null, bool $idempotent = false): array
+    public function call(callable $send, ?string $idempotencyKey = null, bool $idempotent = false, bool $singleUse = false): array
     {
         if ($idempotent && $idempotencyKey === null && $this->maxRetries > 0) {
             $idempotencyKey = self::generateIdempotencyKey();
@@ -171,7 +176,7 @@ class LiveXFaceClient
             // Safe to repeat after it may have run: a read, a metadata update,
             // a delete, or a call the server deduplicates by its key.
             $safe = $idempotencyKey !== null || in_array($method, ['GET', 'PATCH', 'DELETE'], true);
-            $retryable = $status === 429 || $status === 503
+            $retryable = $status === 429 || ($status === 503 && ! $singleUse)
                 || ($safe && ($error instanceof LiveXFaceNetworkException || $status >= 500));
 
             if (! $retryable || $attempt >= $this->maxRetries) {

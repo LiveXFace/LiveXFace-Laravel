@@ -73,6 +73,10 @@ final class ContractTest extends TestCase
             'FacesResource::identify' => fn ($c) => $c->faces()->identify('col', 'img', 3, 0.5, 'a.jpg'),
             'FacesResource::liveness' => fn ($c) => $c->faces()->liveness('col', 'img', 'a.jpg'),
             'FacesResource::activeLiveness' => fn ($c) => $c->faces()->activeLiveness('col', ['f0', 'f1', 'f2', 'f3', 'f4']),
+            'FacesResource::createLivenessSession' => fn ($c) => $c->faces()->createLivenessSession('col'),
+            'FacesResource::completeLivenessSession' => fn ($c) => $c->faces()->completeLivenessSession(
+                'col', 'lvs_1', ['f0', 'f1', 'f2', 'f3', 'f4'], true,
+            ),
             'FacesResource::compare' => fn ($c) => $c->faces()->compare('img1', 'img2', 0.5),
             'FacesResource::attributes' => fn ($c) => $c->faces()->attributes('col', 'img', 'a.jpg'),
             'FacesResource::batchRegister' => fn ($c) => $c->faces()->batchRegister('col', $items, 'idem-2'),
