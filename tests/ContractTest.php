@@ -71,6 +71,7 @@ final class ContractTest extends TestCase
             'FacesResource::delete' => fn ($c) => $c->faces()->delete('col', 'f-1'),
             'FacesResource::verify' => fn ($c) => $c->faces()->verify('col', 'img', 'f-1', 0.5, 'a.jpg'),
             'FacesResource::identify' => fn ($c) => $c->faces()->identify('col', 'img', 3, 0.5, 'a.jpg'),
+            'FacesResource::search' => fn ($c) => $c->faces()->search('img', ['c1', 'c2'], 3, 0.5, 'a.jpg'),
             'FacesResource::liveness' => fn ($c) => $c->faces()->liveness('col', 'img', 'a.jpg'),
             'FacesResource::activeLiveness' => fn ($c) => $c->faces()->activeLiveness('col', ['f0', 'f1', 'f2', 'f3', 'f4']),
             'FacesResource::createLivenessSession' => fn ($c) => $c->faces()->createLivenessSession('col'),

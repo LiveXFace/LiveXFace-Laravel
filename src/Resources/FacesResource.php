@@ -8,6 +8,7 @@ use LiveXFace\DTO\BatchJob;
 use LiveXFace\DTO\BatchResponse;
 use LiveXFace\DTO\Face;
 use LiveXFace\DTO\IdentifyResult;
+use LiveXFace\DTO\CrossCollectionSearchResult;
 use LiveXFace\DTO\LivenessResult;
 use LiveXFace\DTO\LivenessSession;
 use LiveXFace\DTO\LivenessSessionResult;
@@ -134,6 +135,26 @@ class FacesResource
         );
 
         return IdentifyResult::fromArray($data);
+    }
+
+    /** Search for matching faces across multiple or all collections. */
+    public function search(
+        string $image,
+        array $collectionIds = [],
+        int $topK = 5,
+        ?float $threshold = null,
+        string $filename = 'image.jpg',
+    ): CrossCollectionSearchResult {
+        $fields = ['top_k' => (string) $topK];
+        if ($collectionIds !== []) {
+            $fields['collection_ids'] = implode(',', $collectionIds);
+        }
+        if ($threshold !== null) {
+            $fields['threshold'] = (string) $threshold;
+        }
+        $data = $this->client->call(fn ($req) => $req->attach('image', $image, $filename)->post('/search', $fields));
+
+        return CrossCollectionSearchResult::fromArray($data);
     }
 
     /** Passive liveness detection (anti-spoofing). */
